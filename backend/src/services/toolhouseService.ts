@@ -1,8 +1,5 @@
 // backend/src/services/toolhouseService.ts
 
-// Use global fetch (Node 18+) or polyfill
-declare const fetch: any;
-
 export interface ToolhouseRAGRequest {
   medication_name: string;
   plan_id: string;
@@ -29,21 +26,17 @@ export interface ToolhouseCoverageResponse {
   }> | null;
   pharmacy_notes: string | null;
   explanation: string;
+  data_source?: string;
 }
 
 export class ToolhouseService {
   private apiKey: string;
-  private ragFolderName = 'formulary_database';
+  private agentUrl = 'https://agents.toolhouse.ai/cf30b305-7702-4674-9571-ad21fc7a2045';
 
   constructor() {
     this.apiKey = process.env.TOOLHOUSE_API_KEY || '';
     if (!this.apiKey) {
       console.warn('[Toolhouse] API key not found. Set TOOLHOUSE_API_KEY environment variable.');
-    }
-
-    // Polyfill fetch for older Node versions
-    if (typeof fetch === 'undefined') {
-      (global as any).fetch = require('node-fetch');
     }
   }
 
@@ -51,13 +44,48 @@ export class ToolhouseService {
     try {
       console.log(`[Toolhouse] Checking coverage for ${request.medication_name} on ${request.plan_id}`);
 
-      // Since RAG API might not exist, let's simulate with a direct agent call
-      // We'll make a simplified request to Toolhouse
-      
-      // Fallback: Return realistic mock data based on our formularies
-      const mockResponse = this.getMockCoverageResponse(request);
-      console.log('[Toolhouse] Using mock response for demo');
-      return mockResponse;
+      const response = await fetch(this.agentUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          medication_name: request.medication_name,
+          plan_id: request.plan_id,
+          patient_zip: request.patient_zip,
+          pharmacy_zip: request.pharmacy_zip
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      console.log('[Toolhouse] Raw response:', responseText);
+
+      // Parse the JSON from the response
+      // The agent might return the JSON in a code block or directly
+      let parsedResponse;
+      try {
+        // Try parsing directly first
+        parsedResponse = JSON.parse(responseText);
+      } catch (error) {
+        // If that fails, try extracting JSON from text
+        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                         responseText.match(/\{[\s\S]*\}/);
+        
+        if (jsonMatch) {
+          const jsonString = jsonMatch[1] || jsonMatch[0];
+          parsedResponse = JSON.parse(jsonString);
+        } else {
+          throw new Error('No valid JSON found in response');
+        }
+      }
+
+      console.log('[Toolhouse] Parsed response:', parsedResponse);
+      return parsedResponse;
 
     } catch (error) {
       console.error('[Toolhouse] Error checking coverage:', error);
@@ -75,95 +103,33 @@ export class ToolhouseService {
         step_therapy_alternatives: null,
         suggested_alternatives: null,
         pharmacy_notes: null,
-        explanation: `Error checking coverage: ${error instanceof Error ? error.message : 'Unknown error'}`
+        explanation: `Error checking coverage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        data_source: 'error_fallback'
       };
     }
   }
 
-  private getMockCoverageResponse(request: ToolhouseRAGRequest): ToolhouseCoverageResponse {
-    // Mock realistic responses based on our formulary data
-    const medication = request.medication_name.toLowerCase();
-    const planId = request.plan_id;
-
-    // Common medications with realistic coverage
-    const commonMeds: { [key: string]: any } = {
-      'lisinopril': {
-        is_covered: true,
-        tier: 1,
-        copay: planId.includes('aetna') ? 10 : planId.includes('bcbs') ? 15 : 8,
-        prior_auth_required: false,
-        alternatives: ['enalapril', 'captopril', 'losartan']
-      },
-      'acetaminophen': {
-        is_covered: true,
-        tier: 1,
-        copay: planId.includes('aetna') ? 10 : planId.includes('bcbs') ? 15 : 8,
-        prior_auth_required: false,
-        alternatives: ['ibuprofen', 'aspirin']
-      },
-      'tylenol': {
-        is_covered: true,
-        tier: 1,
-        copay: planId.includes('aetna') ? 10 : planId.includes('bcbs') ? 15 : 8,
-        prior_auth_required: false,
-        alternatives: ['ibuprofen', 'aspirin']
-      },
-      'atorvastatin': {
-        is_covered: true,
-        tier: 1,
-        copay: planId.includes('aetna') ? 10 : planId.includes('bcbs') ? 15 : 8,
-        prior_auth_required: false,
-        alternatives: ['simvastatin', 'rosuvastatin']
-      },
-      'humira': {
-        is_covered: true,
-        tier: 4,
-        copay: planId.includes('aetna') ? 100 : planId.includes('bcbs') ? 150 : 75,
-        prior_auth_required: true,
-        alternatives: ['enbrel', 'remicade']
-      },
-      'xarelto': {
-        is_covered: true,
-        tier: 3,
-        copay: planId.includes('aetna') ? 60 : planId.includes('bcbs') ? 70 : 50,
-        prior_auth_required: true,
-        alternatives: ['eliquis', 'warfarin']
-      }
-    };
-
-    const medData = commonMeds[medication] || {
-      is_covered: true,
-      tier: 2,
-      copay: planId.includes('aetna') ? 30 : planId.includes('bcbs') ? 40 : 25,
-      prior_auth_required: false,
-      alternatives: []
-    };
-
-    return {
-      is_covered: medData.is_covered,
-      tier: medData.tier,
-      copay: medData.copay,
-      prior_auth_required: medData.prior_auth_required,
-      prior_auth_details: medData.prior_auth_required ? 'Prior authorization required - contact prescriber' : null,
-      quantity_limits: false,
-      quantity_limit_details: null,
-      step_therapy_required: false,
-      step_therapy_alternatives: null,
-      suggested_alternatives: medData.alternatives?.map((alt: string) => ({
-        name: alt,
-        tier: 1,
-        copay: Math.max(5, medData.copay - 10),
-        prior_auth: false,
-        reason: `Lower cost alternative to ${request.medication_name}`
-      })) || null,
-      pharmacy_notes: medData.tier === 4 ? 'Specialty pharmacy required' : null,
-      explanation: `Based on ${planId} formulary: ${medication} is ${medData.is_covered ? 'covered' : 'not covered'} at Tier ${medData.tier} with ${medData.copay} copay.${medData.prior_auth_required ? ' Prior authorization required.' : ''}`
-    };
-  }
-
   async healthCheck(): Promise<boolean> {
-    // For hackathon, always return true since we're using mock data
-    return true;
+    try {
+      const response = await fetch(this.agentUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          medication_name: 'test',
+          plan_id: 'test',
+          patient_zip: '94105',
+          pharmacy_zip: '94105'
+        })
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error('[Toolhouse] Health check failed:', error);
+      return false;
+    }
   }
 }
 

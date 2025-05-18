@@ -44,16 +44,83 @@ export class CoverageService {
         };
       }
 
-      // Step 2: Check coverage with real formulary service
-      console.log('[Coverage] Step 2: Checking coverage with real formulary...');
-      const toolhouseRequest: ToolhouseRAGRequest = {
-        medication_name: normalizedResult.medication.name,
-        plan_id: request.insurancePlan.id,
-        patient_zip: request.patientZipCode,
-        pharmacy_zip: request.pharmacyZipCode
-      };
+// Step 2: Try RAG first, but handle failures gracefully
+console.log('[Coverage] Step 2: Checking coverage with Toolhouse RAG...');
+let toolhouseResponse = null;
 
-      const toolhouseResponse = await toolhouseService.checkCoverage(toolhouseRequest);
+try {
+  const toolhouseRequest: ToolhouseRAGRequest = {
+    medication_name: normalizedResult.medication.name,
+    plan_id: request.insurancePlan.id,
+    patient_zip: request.patientZipCode,
+    pharmacy_zip: request.pharmacyZipCode
+  };
+
+  toolhouseResponse = await toolhouseService.checkCoverage(toolhouseRequest);
+  
+  // Check if RAG actually found data
+  if (toolhouseResponse.is_covered === null || toolhouseResponse.tier === null) {
+    console.log('[Coverage] RAG returned incomplete data, trying local formulary...');
+    throw new Error('RAG returned incomplete data');
+  }
+  
+  console.log('[Coverage] RAG found complete data, using RAG response');
+  
+} catch (ragError) {
+  console.log('[Coverage] RAG failed, falling back to local formulary:', ragError.message);
+  
+  // Step 2b: Fallback to local formulary
+  const localResult = formularyService.checkCoverage(
+    request.insurancePlan.id, 
+    normalizedResult.medication.name
+  );
+  
+  if (localResult.isFound && localResult.entry) {
+    console.log('[Coverage] Found in local formulary:', localResult.matchedName);
+    
+    // Convert local result to toolhouse format
+    toolhouseResponse = {
+      is_covered: true,
+      tier: localResult.entry.tier,
+      copay: localResult.entry.copay,
+      prior_auth_required: localResult.entry.prior_auth,
+      prior_auth_details: localResult.entry.prior_auth ? 'Prior authorization required by plan' : null,
+      quantity_limits: localResult.entry.quantity_limits || false,
+      quantity_limit_details: localResult.entry.quantity_limit_details || null,
+      step_therapy_required: localResult.entry.step_therapy || false,
+      step_therapy_alternatives: localResult.entry.step_therapy_alternatives || null,
+      suggested_alternatives: localResult.entry.alternatives?.map(alt => ({
+        name: alt,
+        tier: 1,
+        copay: 10,
+        prior_auth: false,
+        reason: `Lower-cost alternative to ${normalizedResult.medication.name}`
+      })) || null,
+      pharmacy_notes: null,
+      explanation: `Found in local ${request.insurancePlan.carrier} formulary as ${localResult.matchedName}`,
+      data_source: 'local_formulary'
+    };
+  } else {
+    console.log('[Coverage] Not found in local formulary either');
+    // Use the error response from toolhouseService
+    toolhouseResponse = {
+      is_covered: false,
+      tier: null,
+      copay: null,
+      prior_auth_required: false,
+      prior_auth_details: null,
+      quantity_limits: false,
+      quantity_limit_details: null,
+      step_therapy_required: false,
+      step_therapy_alternatives: null,
+      suggested_alternatives: null,
+      pharmacy_notes: null,
+      explanation: `${normalizedResult.medication.name} not found in ${request.insurancePlan.carrier} formulary. Please contact your insurance provider for coverage details.`,
+      data_source: 'not_found'
+    };
+  }
+}
+
 
       // Step 3: Build comprehensive response
       console.log('[Coverage] Step 3: Building comprehensive response...');

@@ -1,0 +1,58 @@
+# Toolhouse Agent Configuration
+# The ID of the agent. Do not change this unless you know what you're doing.
+id: cf30b305-7702-4674-9571-ad21fc7a2045
+title: Formulary Coverage Agent
+
+prompt: |
+  You must search the uploaded RAG documents to find coverage for {medication_name} on plan {plan_id}.
+  
+  CRITICAL: Use the RAG search functionality to look through these exact files that are uploaded:
+  - aetna-formulary.json
+  - bcbs-formulary.json  
+  - unitedhealth-formulary.json
+  - iu-health-hix-2025.pdf
+  - cvs-caremark-pa-2025.pdf
+  - medicaid-formulary-2025.pdf
+  
+  For plan matching:
+  - If plan_id contains "aetna" → search aetna-formulary.json
+  - If plan_id contains "bcbs" → search bcbs-formulary.json
+  - If plan_id contains "united" → search unitedhealth-formulary.json
+  - If plan_id contains "iu-health" → search iu-health-hix-2025.pdf
+  
+  Search for {medication_name} in the appropriate formulary file.
+  
+  ALWAYS return valid JSON in this exact format:
+  {
+    "is_covered": true,
+    "tier": 1,
+    "copay": 10,
+    "prior_auth_required": false,
+    "prior_auth_details": null,
+    "quantity_limits": false,
+    "quantity_limit_details": null,
+    "step_therapy_required": false,
+    "step_therapy_alternatives": null,
+    "suggested_alternatives": [
+      {
+        "name": "enalapril",
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "reason": "similar ACE inhibitor"
+      }
+    ],
+    "explanation": "Found lisinopril in aetna-formulary.json as Tier 1 generic",
+    "data_source": "aetna-formulary.json"
+  }
+  
+  If medication not found, set is_covered to false but still return valid JSON.
+
+vars:
+  medication_name: "lisinopril"
+  plan_id: "aetna-choice-pos"
+  patient_zip: "94105"
+  pharmacy_zip: "94105"
+
+toolhouse_id: "default"
+rag: "formulary_database"
