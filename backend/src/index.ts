@@ -1,14 +1,15 @@
-
-
 console.log('🔥 index.ts loaded');
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import coverageRoutes from './routes/coverage';
+import { groqService } from './services/groqService';
 
-dotenv.config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,14 +34,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
+// Health check with Groq service test
+app.get('/api/health', async (req, res) => {
+  // Test Groq service health
+  const groqHealthy = await groqService.healthCheck();
+  
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     services: {
-      groq: process.env.GROQ_API_KEY ? 'configured' : 'missing',
+      groq: process.env.GROQ_API_KEY 
+        ? (groqHealthy ? 'healthy' : 'configured but not responding') 
+        : 'missing',
       toolhouse: 'pending'
     }
   });

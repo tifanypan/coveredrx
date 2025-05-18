@@ -4,8 +4,10 @@ import {
   CoverageRequest,
   ApiResponse,
   CoverageResponse,
-  ValidationError
+  ValidationError,
+  Medication
 } from '../../../shared/types';
+import { groqService } from '../services/groqService';
 
 const router = express.Router();
 
@@ -53,9 +55,39 @@ const coverageCheckHandler: RequestHandler<{}, ApiResponse<CoverageResponse | nu
       // Destructure validated body
       const { medication, insurancePlan, patientZipCode, pharmacyZipCode, quantity, daySupply } = req.body;
 
-      // Mock response
+      // Phase 2: Use Groq to enhance medication data
+      console.log('[Coverage] Starting Groq normalization for:', medication.name);
+      let enhancedMedication: Medication;
+      let groqDisclaimer = '';
+
+      try {
+        const normalizedResult = await groqService.normalizeMedication(medication.name);
+        
+        // Merge the original medication data with Groq's enhanced data
+        enhancedMedication = {
+          id: medication.id,
+          name: normalizedResult.medication.name || medication.name,
+          genericName: normalizedResult.medication.genericName || medication.genericName,
+          brandName: normalizedResult.medication.brandName || medication.brandName,
+          strength: normalizedResult.medication.strength || medication.strength,
+          dosageForm: normalizedResult.medication.dosageForm || medication.dosageForm,
+          ndc: normalizedResult.medication.ndc || medication.ndc
+        };
+
+        groqDisclaimer = ` (Enhanced by AI with ${Math.round(normalizedResult.confidence * 100)}% confidence)`;
+        console.log('[Coverage] Groq normalization successful:', enhancedMedication.name);
+        
+      } catch (groqError) {
+        console.warn('[Coverage] Groq normalization failed, using original data:', groqError);
+        enhancedMedication = medication;
+        groqDisclaimer = ' (AI enhancement unavailable)';
+      }
+
+      // TODO: Phase 3 - Add Toolhouse integration for coverage checking
+      
+      // Mock response with enhanced medication data
       const mockResponse: CoverageResponse = {
-        medication,
+        medication: enhancedMedication,
         insurancePlan,
         isCovered: true,
         tier: 2,
@@ -63,7 +95,7 @@ const coverageCheckHandler: RequestHandler<{}, ApiResponse<CoverageResponse | nu
         priorAuth: { required: false },
         suggestedAlternative: undefined,
         lastUpdated: new Date().toISOString(),
-        disclaimer: 'This is a mock response for testing'
+        disclaimer: `Phase 2 prototype: Medication normalized by AI${groqDisclaimer}. Coverage rules are still mock data.`
       };
 
       const successResp: ApiResponse<CoverageResponse> = {
