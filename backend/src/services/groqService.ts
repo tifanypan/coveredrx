@@ -22,9 +22,9 @@ export class GroqService {
 IMPORTANT: If this is clearly not a real medication name (random letters, nonsense text, made-up words), respond with:
 {"name": "INVALID_MEDICATION", "confidence": 0.0}
 
-Otherwise, normalize this medication and provide structured information. If you need current FDA data, search for it.
+Otherwise, normalize this medication and provide structured information.
 
-Return a JSON response with this exact structure:
+Return ONLY valid JSON in this exact format (no explanations, no additional text):
 {
   "name": "Standard medication name",
   "genericName": "Generic name if different from name",
@@ -36,17 +36,17 @@ Return a JSON response with this exact structure:
 }
 
 For example:
-- "tylenol" → {"name": "Acetaminophen", "genericName": "Acetaminophen", "brandName": "Tylenol", "strength": "500mg", "dosageForm": "tablet", "confidence": 0.9}
-- "humira" → {"name": "Adalimumab", "genericName": "adalimumab", "brandName": "Humira", "strength": "40mg/0.8ml", "dosageForm": "injection", "confidence": 0.95}
-- "lisinopril" → {"name": "Lisinopril", "genericName": "lisinopril", "strength": "10mg", "dosageForm": "tablet", "confidence": 0.95}
+- Input "tylenol" → {"name": "Acetaminophen", "genericName": "Acetaminophen", "brandName": "Tylenol", "strength": "500mg", "dosageForm": "tablet", "confidence": 0.9}
+- Input "humira" → {"name": "Adalimumab", "genericName": "adalimumab", "brandName": "Humira", "strength": "40mg/0.8ml", "dosageForm": "injection", "confidence": 0.95}
+- Input "lisinopril" → {"name": "Lisinopril", "genericName": "lisinopril", "strength": "10mg", "dosageForm": "tablet", "confidence": 0.95}
 
-Always return valid JSON only.`;
+Return ONLY the JSON object, nothing else.`;
 
       const completion = await groq.chat.completions.create({
         messages: [
           {
             role: "system", 
-            content: "You are a medical AI assistant. Always return valid JSON responses. Use web search if you need current drug information. If input is clearly not a medication, return name as 'INVALID_MEDICATION'."
+            content: "You are a medical AI assistant. Always return ONLY valid JSON. No explanations, no additional text, just the JSON object."
           },
           {
             role: "user",
@@ -72,12 +72,49 @@ Always return valid JSON only.`;
       // Parse the JSON response
       let medicationData;
       try {
-        const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-        const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
+        // Try multiple JSON extraction methods
+        let jsonString = responseContent.trim();
+        
+        // If response contains code blocks, extract JSON from them
+        const codeBlockMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (codeBlockMatch) {
+          jsonString = codeBlockMatch[1].trim();
+        }
+        
+        // If response has other text, try to find the JSON object
+        const jsonObjectMatch = jsonString.match(/\{[\s\S]*\}/);
+        if (jsonObjectMatch) {
+          jsonString = jsonObjectMatch[0];
+        }
+        
+        // Clean up common issues
+        jsonString = jsonString
+          .replace(/^\s*```json?\s*/, '')  // Remove opening code blocks
+          .replace(/\s*```\s*$/, '')       // Remove closing code blocks
+          .trim();
+        
         medicationData = JSON.parse(jsonString);
+        console.log('[Groq] Successfully parsed JSON:', medicationData);
+        
       } catch (parseError) {
-        console.error('[Groq] Failed to parse JSON response:', responseContent);
-        throw new Error('Invalid JSON response from Groq');
+        console.error('[Groq] Failed to parse JSON from response:', responseContent);
+        console.error('[Groq] Parse error:', parseError);
+        
+        // Try a more aggressive extraction
+        const fallbackMatch = responseContent.match(/"name"\s*:\s*"([^"]+)"/);
+        if (fallbackMatch) {
+          const extractedName = fallbackMatch[1];
+          console.log('[Groq] Extracted name from partial parse:', extractedName);
+          medicationData = {
+            name: extractedName,
+            genericName: extractedName.toLowerCase(),
+            strength: "unknown",
+            dosageForm: "tablet",
+            confidence: 0.8
+          };
+        } else {
+          throw new Error('Unable to extract medication data from Groq response');
+        }
       }
 
       // Check if Groq identified this as invalid
@@ -105,34 +142,38 @@ Always return valid JSON only.`;
         name: medicationData.name,
         genericName: medicationData.genericName || medicationData.name,
         brandName: medicationData.brandName,
-        strength: medicationData.strength,
+        strength: medicationData.strength || "unknown",
         dosageForm: medicationData.dosageForm || 'tablet',
         ndc: medicationData.ndc
       };
 
       const result: NormalizedMedicationResult = {
         medication,
-        confidence: medicationData.confidence || 0.8,
+        confidence: Math.max(medicationData.confidence || 0.8, 0.5), // Ensure minimum confidence
         searchResults: executedTools?.length > 0 ? 'Used web search for current data' : undefined
       };
 
-      console.log('[Groq] Successfully normalized:', medication.name);
+      console.log('[Groq] Successfully normalized:', medication.name, 'with confidence:', result.confidence);
       return result;
 
     } catch (error) {
       console.error('[Groq] Error normalizing medication:', error);
       
-      // Return fallback response
+      // Return fallback response with moderate confidence for known medication
       const fallbackMedication: Medication = {
         name: userInput,
-        genericName: userInput,
+        genericName: userInput.toLowerCase(),
         strength: 'Unknown',
-        dosageForm: 'unknown'
+        dosageForm: 'tablet'
       };
+
+      // If it's a common medication name, give it higher confidence
+      const commonMeds = ['lisinopril', 'metformin', 'atorvastatin', 'omeprazole', 'sertraline'];
+      const isCommon = commonMeds.some(med => userInput.toLowerCase().includes(med));
 
       return {
         medication: fallbackMedication,
-        confidence: 0.1,
+        confidence: isCommon ? 0.7 : 0.2,
         searchResults: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }

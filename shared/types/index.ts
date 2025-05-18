@@ -54,6 +54,30 @@ export interface PriorAuthRequirement {
 }
 
 // Simplified coverage response
+// export interface CoverageResponse {
+//   medication: Medication;
+//   insurancePlan: InsurancePlan;
+//   isCovered: boolean;
+//   tier: number | null;
+//   estimatedCopay: {
+//     min: number;
+//     max: number;
+//     currency: 'USD';
+//   } | null;
+//   priorAuth: PriorAuthRequirement;
+//   suggestedAlternative?: {
+//     medication: Medication;
+//     tier: number;
+//     estimatedCopay: {
+//       min: number;
+//       max: number;
+//       currency: 'USD';
+//     };
+//     priorAuth: PriorAuthRequirement;
+//   };
+//   lastUpdated: string;
+//   disclaimer?: string;
+// }
 export interface CoverageResponse {
   medication: Medication;
   insurancePlan: InsurancePlan;
@@ -65,16 +89,13 @@ export interface CoverageResponse {
     currency: 'USD';
   } | null;
   priorAuth: PriorAuthRequirement;
-  suggestedAlternative?: {
-    medication: Medication;
+  alternativeMedications?: Array<{
+    name: string;
     tier: number;
-    estimatedCopay: {
-      min: number;
-      max: number;
-      currency: 'USD';
-    };
-    priorAuth: PriorAuthRequirement;
-  };
+    copay: number;
+    prior_auth: boolean;
+    reason: string;
+  }>;
   lastUpdated: string;
   disclaimer?: string;
 }

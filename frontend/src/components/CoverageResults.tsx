@@ -148,65 +148,84 @@ const CoverageResults: React.FC<CoverageResultsProps> = ({
           </CardContent>
         </Card>
 
-        {/* Suggested Alternative */}
-        {result.suggestedAlternative && (
+        {/* Alternative Medications */}
+        {result.alternativeMedications && result.alternativeMedications.length > 0 && (
           <Card className="shadow-lg border border-blue-200 bg-blue-50 mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-blue-900">
-                💡 Suggested Alternative
+                💡 {result.alternativeMedications.length} Covered Alternative{result.alternativeMedications.length > 1 ? 's' : ''}
               </CardTitle>
+              <CardDescription className="text-blue-700">
+                These medications work similarly and may cost less
+              </CardDescription>
             </CardHeader>
             
             <CardContent>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                    {result.suggestedAlternative.medication.name}
-                    {result.suggestedAlternative.medication.genericName && 
-                     result.suggestedAlternative.medication.genericName !== result.suggestedAlternative.medication.name && (
-                      <span className="text-blue-700 font-normal ml-2">
-                        ({result.suggestedAlternative.medication.genericName})
-                      </span>
-                    )}
-                  </h3>
-                  
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      result.suggestedAlternative.priorAuth.required
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {getPriorAuthIcon(result.suggestedAlternative.priorAuth.required)}
-                      {result.suggestedAlternative.priorAuth.required ? 'PA Required' : 'No PA Needed'}
-                    </span>
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      Tier {result.suggestedAlternative.tier}
-                    </span>
-                  </div>
-
-                  <div className="bg-white rounded-lg p-4 border border-blue-200">
-                    <p className="text-blue-900 font-medium mb-2">
-                      💬 <span className="font-semibold">Ask your doctor:</span>
-                    </p>
-                    <p className="text-blue-800">
-                      "Can I use {result.suggestedAlternative.medication.name} instead?"
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="text-center md:text-right">
-                  <div className="text-2xl font-bold text-blue-900 mb-1">
-                    {formatCurrency(result.suggestedAlternative.estimatedCopay.min)}
-                    {result.suggestedAlternative.estimatedCopay.min !== result.suggestedAlternative.estimatedCopay.max &&
-                      `–${formatCurrency(result.suggestedAlternative.estimatedCopay.max)}`
-                    }
-                  </div>
-                  {result.estimatedCopay && result.suggestedAlternative.estimatedCopay.max < result.estimatedCopay.min && (
-                    <div className="text-green-700 font-semibold">
-                      Save {formatCurrency(result.estimatedCopay.min - result.suggestedAlternative.estimatedCopay.max)}+
+              <div className="space-y-3">
+                {result.alternativeMedications.map((alt, index) => (
+                  <div key={index} className="bg-white border border-blue-200 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      {/* Medication Name - Takes more space */}
+                      <div className="md:col-span-4">
+                        <div className="font-semibold text-blue-900 text-lg">
+                          {alt.name}
+                        </div>
+                        <div className="text-sm text-blue-700 capitalize">
+                          {alt.reason || 'Similar medication'}
+                        </div>
+                      </div>
+                      
+                      {/* Coverage Status */}
+                      <div className="md:col-span-2 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-green-600">✅</span>
+                          <span className="text-sm font-medium text-gray-700">Covered</span>
+                        </div>
+                      </div>
+                      
+                      {/* Tier */}
+                      <div className="md:col-span-2 text-center">
+                        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                          Tier {alt.tier}
+                        </span>
+                      </div>
+                      
+                      {/* Prior Auth */}
+                      <div className="md:col-span-2 text-center">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          alt.prior_auth
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {alt.prior_auth ? '🔒 PA Required' : '✅ No PA'}
+                        </span>
+                      </div>
+                      
+                      {/* Copay */}
+                      <div className="md:col-span-2 text-center">
+                        <div className="text-xl font-bold text-blue-900">
+                          {formatCurrency(alt.copay)}
+                        </div>
+                        {result.estimatedCopay && alt.copay < result.estimatedCopay.min && (
+                          <div className="text-sm text-green-700 font-semibold">
+                            Save {formatCurrency(result.estimatedCopay.min - alt.copay)}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Doctor Discussion Prompt */}
+              <div className="mt-6 bg-white rounded-lg p-4 border border-blue-200">
+                <p className="text-blue-900 font-medium mb-2">
+                  💬 <span className="font-semibold">Questions for your doctor:</span>
+                </p>
+                <p className="text-blue-800">
+                  "I see that {result.alternativeMedications[0]?.name} is covered at a lower cost. 
+                  Would that be a good alternative for my condition?"
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -243,6 +262,11 @@ const CoverageResults: React.FC<CoverageResultsProps> = ({
                   <span className="font-medium">Important:</span> Results are estimates based on your plan's formulary. 
                   Actual costs may vary by pharmacy. Always confirm with your pharmacist before purchasing.
                 </p>
+                {result.disclaimer && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {result.disclaimer}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
