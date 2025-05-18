@@ -144,13 +144,38 @@ export class WebResearchService {
         // Handle prices array format: {prices: [{dosage: "2.5mg", price: 4.99, pharmacy: "CVS"}]}
         if (drugData.prices && Array.isArray(drugData.prices)) {
           drugData.prices.forEach((item: any) => {
-            if (item.price) {
+            // Handle flat price format
+            if (item.price && item.pharmacy) {
               const price = typeof item.price === 'string' ? 
                 parseFloat(item.price.replace(/[$,]/g, '')) : item.price;
               priceComparisons.push({
                 pharmacy: item.pharmacy || 'Cash Price',
                 price: price,
                 discounts: item.dosage ? [`${item.dosage}`] : []
+              });
+            }
+            // Handle nested pharmacies format: {dosage: "10mg", price: "$4.50", pharmacies: [...]}
+            else if (item.pharmacies && Array.isArray(item.pharmacies)) {
+              item.pharmacies.forEach((pharmacy: any) => {
+                if (pharmacy.price && pharmacy.name) {
+                  const price = typeof pharmacy.price === 'string' ? 
+                    parseFloat(pharmacy.price.replace(/[$,]/g, '')) : pharmacy.price;
+                  priceComparisons.push({
+                    pharmacy: pharmacy.name,
+                    price: price,
+                    discounts: item.dosage ? [`${item.dosage}`] : []
+                  });
+                }
+              });
+            }
+            // Handle direct price without pharmacy (use dosage as identifier)
+            else if (item.price && item.dosage) {
+              const price = typeof item.price === 'string' ? 
+                parseFloat(item.price.replace(/[$,]/g, '')) : item.price;
+              priceComparisons.push({
+                pharmacy: `GoodRx (${item.dosage})`,
+                price: price,
+                discounts: []
               });
             }
           });
