@@ -35,9 +35,10 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // Health check with all AI services
 app.get('/api/health', async (req, res) => {
-  // Test all AI services
+  // Test all AI services including the new web research
   const healthStatus = await coverageService.healthCheck();
   
   res.json({
@@ -50,6 +51,9 @@ app.get('/api/health', async (req, res) => {
         : 'missing',
       toolhouse: process.env.TOOLHOUSE_API_KEY
         ? (healthStatus.toolhouse ? 'healthy' : 'configured but not responding')
+        : 'missing',
+      webResearch: process.env.GROQ_API_KEY 
+        ? (healthStatus.webResearch ? 'healthy' : 'configured but not responding') 
         : 'missing'
     }
   });

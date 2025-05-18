@@ -3,6 +3,7 @@ import { Medication, InsurancePlan, CoverageResponse, PriorAuthRequirement } fro
 import { groqService } from './groqService';
 import { toolhouseService, ToolhouseRAGRequest } from './toolhouseService';
 import { formularyService } from './formularyService';
+import { webResearchService } from './webResearchService';
 
 export interface CoverageCheckRequest {
   medicationName: string;
@@ -11,6 +12,7 @@ export interface CoverageCheckRequest {
   pharmacyZipCode: string;
   quantity?: number;
   daySupply?: number;
+  includeWebResearch?: boolean; // NEW: Optional web research
 }
 
 export class CoverageService {
@@ -92,6 +94,24 @@ export class CoverageService {
           const fastTime = Date.now() - startTime;
           console.log(`[Coverage] Fast local lookup completed in ${fastTime}ms`);
           
+          // Step 3: Decide on web research
+          let webResearch = undefined;
+          if (request.includeWebResearch) {
+            console.log('[Coverage] Starting optional web research...');
+            try {
+              // Trigger web research for expensive drugs or those with PA requirements
+              if (toolhouseResponse.copay > 50 || toolhouseResponse.prior_auth_required) {
+                webResearch = await webResearchService.findAlternatives(
+                  normalizedResult.medication.name, 
+                  toolhouseResponse.copay
+                );
+              }
+            } catch (webError) {
+              console.error('[Coverage] Web research failed:', webError);
+              // Continue without web research
+            }
+          }
+          
           // Build response immediately
           const priorAuth: PriorAuthRequirement = {
             required: toolhouseResponse.prior_auth_required,
@@ -110,6 +130,7 @@ export class CoverageService {
             }));
           }
 
+          const totalTime = Date.now() - startTime;
           return {
             medication: normalizedResult.medication,
             insurancePlan: request.insurancePlan,
@@ -122,8 +143,9 @@ export class CoverageService {
             } : null,
             priorAuth,
             alternativeMedications,
+            webResearch, // NEW: Include web research if performed
             lastUpdated: new Date().toISOString(),
-            disclaimer: `Fast local lookup completed in ${fastTime}ms. Medication normalized with ${Math.round(normalizedResult.confidence * 100)}% confidence. ${toolhouseResponse.explanation}`
+            disclaimer: `Fast local lookup completed in ${totalTime}ms. Medication normalized with ${Math.round(normalizedResult.confidence * 100)}% confidence. ${toolhouseResponse.explanation}${webResearch ? ` Web research included ${webResearch.alternatives.length} additional alternatives.` : ''}`
           };
         }
       }
@@ -204,11 +226,39 @@ export class CoverageService {
       }
 
       // Log timing
-      const totalTime = Date.now() - startTime;
-      console.log(`[Coverage] Parallel lookup completed in ${totalTime}ms using ${dataSource}`);
+      const parallelTime = Date.now() - startTime;
+      console.log(`[Coverage] Parallel lookup completed in ${parallelTime}ms using ${dataSource}`);
 
-      // Step 3: Build comprehensive response
-      console.log('[Coverage] Step 3: Building comprehensive response...');
+      // Step 3: Optional Web Research
+      let webResearch = undefined;
+      if (request.includeWebResearch) {
+        console.log('[Coverage] Starting web research...');
+        try {
+          // Determine what type of research to do
+          if (!toolhouseResponse.is_covered || (toolhouseResponse.copay && toolhouseResponse.copay > 100)) {
+            // Drug not covered or expensive - find alternatives
+            webResearch = await webResearchService.findAlternatives(
+              normalizedResult.medication.name, 
+              toolhouseResponse.copay || undefined
+            );
+          } else if (toolhouseResponse.prior_auth_required) {
+            // Prior auth required - research strategies
+            webResearch = await webResearchService.researchPAStrategies(normalizedResult.medication.name);
+          } else {
+            // Just do price comparison
+            webResearch = await webResearchService.findPriceComparison(normalizedResult.medication.name);
+          }
+          
+          const webTime = Date.now() - startTime;
+          console.log(`[Coverage] Web research completed in ${webTime}ms total`);
+        } catch (webError) {
+          console.error('[Coverage] Web research failed:', webError);
+          // Continue without web research
+        }
+      }
+
+      // Step 4: Build comprehensive response
+      console.log('[Coverage] Step 4: Building comprehensive response...');
       
       // Map response to our format
       const priorAuth: PriorAuthRequirement = {
@@ -230,6 +280,7 @@ export class CoverageService {
       }
 
       // Combine all information into final response
+      const finalTime = Date.now() - startTime;
       const response: CoverageResponse = {
         medication: normalizedResult.medication,
         insurancePlan: request.insurancePlan,
@@ -242,11 +293,12 @@ export class CoverageService {
         } : null,
         priorAuth,
         alternativeMedications,
+        webResearch, // NEW: Include web research results
         lastUpdated: new Date().toISOString(),
-        disclaimer: `AI-powered coverage check completed in ${totalTime}ms. Medication normalized with ${Math.round(normalizedResult.confidence * 100)}% confidence. ${toolhouseResponse.explanation}`
+        disclaimer: `AI-powered coverage check completed in ${finalTime}ms. Medication normalized with ${Math.round(normalizedResult.confidence * 100)}% confidence. ${toolhouseResponse.explanation}${webResearch ? ` Web research found ${webResearch.alternatives.length} additional alternatives and ${webResearch.priceComparisons.length} price comparisons.` : ''}`
       };
 
-      console.log(`[Coverage] Coverage check completed successfully in ${totalTime}ms`);
+      console.log(`[Coverage] Coverage check completed successfully in ${finalTime}ms`);
       return response;
 
     } catch (error) {
@@ -272,6 +324,30 @@ export class CoverageService {
     }
   }
 
+  // NEW: Method specifically for web research
+  async performWebResearch(
+    medicationName: string, 
+    researchType: 'alternatives' | 'pricing' | 'pa-strategies' = 'alternatives'
+  ) {
+    console.log(`[Coverage] Performing ${researchType} research for ${medicationName}`);
+    
+    try {
+      switch (researchType) {
+        case 'alternatives':
+          return await webResearchService.findAlternatives(medicationName);
+        case 'pricing':
+          return await webResearchService.findPriceComparison(medicationName);
+        case 'pa-strategies':
+          return await webResearchService.researchPAStrategies(medicationName);
+        default:
+          return await webResearchService.findAlternatives(medicationName);
+      }
+    } catch (error) {
+      console.error(`[Coverage] Web research failed:`, error);
+      throw error;
+    }
+  }
+
   // Helper method for local formulary check
   private async checkLocalFormulary(planId: string, medicationName: string): Promise<{
     isFound: boolean;
@@ -283,15 +359,17 @@ export class CoverageService {
     return formularyService.checkCoverage(planId, medicationName);
   }
 
-  async healthCheck(): Promise<{ groq: boolean; toolhouse: boolean }> {
-    const [groqHealthy, toolhouseHealthy] = await Promise.all([
+  async healthCheck(): Promise<{ groq: boolean; toolhouse: boolean; webResearch: boolean }> {
+    const [groqHealthy, toolhouseHealthy, webResearchHealthy] = await Promise.all([
       groqService.healthCheck(),
-      toolhouseService.healthCheck()
+      toolhouseService.healthCheck(),
+      webResearchService.healthCheck()
     ]);
 
     return {
       groq: groqHealthy,
-      toolhouse: toolhouseHealthy
+      toolhouse: toolhouseHealthy,
+      webResearch: webResearchHealthy
     };
   }
 }
