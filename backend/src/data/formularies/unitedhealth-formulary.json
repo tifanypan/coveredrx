@@ -1,0 +1,205 @@
+{
+    "plan_id": "unitedhealth-hmo",
+    "plan_name": "UnitedHealthcare HMO",
+    "carrier": "UnitedHealthcare",
+    "type": "HMO",
+    "effective_date": "2025-01-01",
+    "tier_structure": {
+      "tier_1": {
+        "name": "Generic",
+        "copay": 8,
+        "description": "Generic medications on formulary"
+      },
+      "tier_2": {
+        "name": "Preferred Brand",
+        "copay": 25,
+        "description": "Preferred brand-name medications"
+      },
+      "tier_3": {
+        "name": "Non-Preferred Brand",
+        "copay": 50,
+        "description": "Non-preferred brand-name medications"
+      },
+      "tier_4": {
+        "name": "Specialty",
+        "copay": 75,
+        "description": "Specialty medications requiring special handling"
+      }
+    },
+    "formulary": {
+      "acetaminophen": {
+        "generic_name": "acetaminophen",
+        "brand_names": ["Tylenol"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["ibuprofen", "aspirin"]
+      },
+      "lisinopril": {
+        "generic_name": "lisinopril",
+        "brand_names": ["Prinivil", "Zestril"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["enalapril", "captopril"]
+      },
+      "atorvastatin": {
+        "generic_name": "atorvastatin",
+        "brand_names": ["Lipitor"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["simvastatin", "lovastatin"]
+      },
+      "metformin": {
+        "generic_name": "metformin",
+        "brand_names": ["Glucophage"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["glyburide", "pioglitazone"]
+      },
+      "omeprazole": {
+        "generic_name": "omeprazole",
+        "brand_names": ["Prilosec"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": true,
+        "quantity_limit_details": "30 tablets per 30 days",
+        "step_therapy": false,
+        "alternatives": ["pantoprazole", "famotidine"]
+      },
+      "sertraline": {
+        "generic_name": "sertraline",
+        "brand_names": ["Zoloft"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["fluoxetine", "paroxetine"]
+      },
+      "amlodipine": {
+        "generic_name": "amlodipine",
+        "brand_names": ["Norvasc"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["nifedipine", "verapamil"]
+      },
+      "levothyroxine": {
+        "generic_name": "levothyroxine",
+        "brand_names": ["Synthroid", "Levoxyl"],
+        "tier": 1,
+        "copay": 8,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["liothyronine"],
+        "notes": "Generic preferred over brand"
+      },
+      "dulera": {
+        "generic_name": "mometasone/formoterol",
+        "brand_names": ["Dulera"],
+        "tier": 2,
+        "copay": 25,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try generic short-acting bronchodilator first",
+        "quantity_limits": true,
+        "quantity_limit_details": "1 inhaler per 30 days",
+        "step_therapy": true,
+        "step_therapy_alternatives": ["albuterol", "ipratropium"],
+        "alternatives": ["symbicort", "advair"]
+      },
+      "remicade": {
+        "generic_name": "infliximab",
+        "brand_names": ["Remicade"],
+        "tier": 4,
+        "copay": 75,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try conventional DMARDs and document inflammatory condition",
+        "quantity_limits": true,
+        "quantity_limit_details": "Per dosing schedule based on weight",
+        "step_therapy": true,
+        "step_therapy_alternatives": ["methotrexate", "sulfasalazine"],
+        "alternatives": ["humira", "enbrel"],
+        "specialty_pharmacy_required": true,
+        "infusion_required": true
+      },
+      "pradaxa": {
+        "generic_name": "dabigatran",
+        "brand_names": ["Pradaxa"],
+        "tier": 3,
+        "copay": 50,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try warfarin first unless contraindicated or high bleeding risk",
+        "quantity_limits": false,
+        "step_therapy": true,
+        "step_therapy_alternatives": ["warfarin"],
+        "alternatives": ["eliquis", "xarelto"]
+      },
+      "farxiga": {
+        "generic_name": "dapagliflozin",
+        "brand_names": ["Farxiga"],
+        "tier": 3,
+        "copay": 50,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try metformin and another antidiabetic first",
+        "quantity_limits": false,
+        "step_therapy": true,
+        "step_therapy_alternatives": ["metformin", "glimepiride"],
+        "alternatives": ["jardiance", "invokana"]
+      },
+      "keytruda": {
+        "generic_name": "pembrolizumab",
+        "brand_names": ["Keytruda"],
+        "tier": 4,
+        "copay": 75,
+        "prior_auth": true,
+        "prior_auth_criteria": "Oncology diagnosis required, must meet FDA-approved indications",
+        "quantity_limits": true,
+        "quantity_limit_details": "Per dosing schedule and indication",
+        "step_therapy": false,
+        "alternatives": ["opdivo"],
+        "specialty_pharmacy_required": true,
+        "infusion_required": true
+      }
+    },
+    "coverage_policies": {
+      "prior_authorization": {
+        "description": "Prior authorization ensures appropriate medication use and cost management",
+        "typical_approval_time": "1-2 business days",
+        "appeal_process": true,
+        "peer_to_peer_review": "Available for denials"
+      },
+      "step_therapy": {
+        "description": "Step therapy requires trying cost-effective treatments first",
+        "exceptions": "Medical contraindications and documented failures override"
+      },
+      "quantity_limits": {
+        "description": "Quantity limits promote safe prescribing practices",
+        "override_process": true,
+        "clinical_justification_required": true
+      },
+      "preferred_pharmacy": {
+        "available": true,
+        "discount": "Lower copays at OptumRx pharmacies",
+        "mail_order": "90-day supply available"
+      },
+      "generic_substitution": {
+        "policy": "Generic substitution encouraged when available",
+        "brand_necessary": "DAW (Dispense as Written) requires extra copay"
+      }
+    }
+  }

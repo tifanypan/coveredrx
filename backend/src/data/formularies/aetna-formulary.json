@@ -1,0 +1,176 @@
+{
+    "plan_id": "aetna-choice-pos",
+    "plan_name": "Aetna Choice POS II",
+    "carrier": "Aetna",
+    "type": "POS",
+    "effective_date": "2025-01-01",
+    "tier_structure": {
+      "tier_1": {
+        "name": "Generic",
+        "copay": 10,
+        "description": "Most cost-effective generic medications"
+      },
+      "tier_2": {
+        "name": "Preferred Brand",
+        "copay": 30,
+        "description": "Preferred brand-name medications"
+      },
+      "tier_3": {
+        "name": "Non-Preferred Brand",
+        "copay": 60,
+        "description": "Non-preferred brand-name medications"
+      },
+      "tier_4": {
+        "name": "Specialty",
+        "copay": 100,
+        "description": "High-cost specialty medications"
+      }
+    },
+    "formulary": {
+      "acetaminophen": {
+        "generic_name": "acetaminophen",
+        "brand_names": ["Tylenol"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["ibuprofen", "aspirin"]
+      },
+      "lisinopril": {
+        "generic_name": "lisinopril",
+        "brand_names": ["Prinivil", "Zestril"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["enalapril", "captopril", "losartan"]
+      },
+      "atorvastatin": {
+        "generic_name": "atorvastatin",
+        "brand_names": ["Lipitor"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["simvastatin", "rosuvastatin"]
+      },
+      "metformin": {
+        "generic_name": "metformin",
+        "brand_names": ["Glucophage"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["glyburide", "glipizide"]
+      },
+      "omeprazole": {
+        "generic_name": "omeprazole",
+        "brand_names": ["Prilosec"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": true,
+        "quantity_limit_details": "30 tablets per 30 days",
+        "step_therapy": false,
+        "alternatives": ["esomeprazole", "lansoprazole"]
+      },
+      "sertraline": {
+        "generic_name": "sertraline",
+        "brand_names": ["Zoloft"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["fluoxetine", "escitalopram"]
+      },
+      "amlodipine": {
+        "generic_name": "amlodipine",
+        "brand_names": ["Norvasc"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["nifedipine", "diltiazem"]
+      },
+      "hydrochlorothiazide": {
+        "generic_name": "hydrochlorothiazide",
+        "brand_names": ["Microzide"],
+        "tier": 1,
+        "copay": 10,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["chlorthalidone", "indapamide"]
+      },
+      "levothyroxine": {
+        "generic_name": "levothyroxine",
+        "brand_names": ["Synthroid", "Levoxyl"],
+        "tier": 2,
+        "copay": 30,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["liothyronine"]
+      },
+      "symbicort": {
+        "generic_name": "budesonide/formoterol",
+        "brand_names": ["Symbicort"],
+        "tier": 2,
+        "copay": 30,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try generic albuterol first",
+        "quantity_limits": true,
+        "quantity_limit_details": "2 inhalers per 30 days",
+        "step_therapy": true,
+        "step_therapy_alternatives": ["albuterol", "fluticasone"],
+        "alternatives": ["advair", "dulera"]
+      },
+      "humira": {
+        "generic_name": "adalimumab",
+        "brand_names": ["Humira"],
+        "tier": 4,
+        "copay": 100,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try methotrexate and sulfasalazine first, documented RA diagnosis",
+        "quantity_limits": true,
+        "quantity_limit_details": "2 pens per 28 days",
+        "step_therapy": true,
+        "step_therapy_alternatives": ["methotrexate", "sulfasalazine"],
+        "alternatives": ["enbrel", "remicade"],
+        "specialty_pharmacy_required": true
+      },
+      "xarelto": {
+        "generic_name": "rivaroxaban",
+        "brand_names": ["Xarelto"],
+        "tier": 3,
+        "copay": 60,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try warfarin first unless contraindicated",
+        "quantity_limits": false,
+        "step_therapy": true,
+        "step_therapy_alternatives": ["warfarin"],
+        "alternatives": ["eliquis", "pradaxa"]
+      }
+    },
+    "coverage_policies": {
+      "prior_authorization": {
+        "description": "Some medications require prior authorization before coverage",
+        "typical_approval_time": "1-3 business days",
+        "appeal_process": true
+      },
+      "step_therapy": {
+        "description": "Some medications require trying lower-cost alternatives first",
+        "exceptions": "Medical necessity can override step therapy"
+      },
+      "quantity_limits": {
+        "description": "Some medications have quantity limits per fill or time period",
+        "override_process": true
+      }
+    }
+  }

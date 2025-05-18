@@ -1,0 +1,186 @@
+{
+    "plan_id": "bcbs-ppo-standard",
+    "plan_name": "Blue Choice PPO Standard",
+    "carrier": "Blue Cross Blue Shield",
+    "type": "PPO",
+    "effective_date": "2025-01-01",
+    "tier_structure": {
+      "tier_1": {
+        "name": "Generic",
+        "copay": 15,
+        "description": "Generic medications and preferred generics"
+      },
+      "tier_2": {
+        "name": "Preferred Brand",
+        "copay": 40,
+        "description": "Preferred brand-name medications"
+      },
+      "tier_3": {
+        "name": "Non-Preferred Brand",
+        "copay": 70,
+        "description": "Non-preferred brand-name medications"
+      },
+      "tier_4": {
+        "name": "Specialty",
+        "copay": 150,
+        "description": "High-cost specialty and biotech medications"
+      }
+    },
+    "formulary": {
+      "acetaminophen": {
+        "generic_name": "acetaminophen",
+        "brand_names": ["Tylenol"],
+        "tier": 1,
+        "copay": 15,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["ibuprofen", "naproxen"]
+      },
+      "lisinopril": {
+        "generic_name": "lisinopril",
+        "brand_names": ["Prinivil", "Zestril"],
+        "tier": 1,
+        "copay": 15,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["enalapril", "ramipril", "benazepril"]
+      },
+      "atorvastatin": {
+        "generic_name": "atorvastatin",
+        "brand_names": ["Lipitor"],
+        "tier": 1,
+        "copay": 15,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["simvastatin", "pravastatin"]
+      },
+      "metformin": {
+        "generic_name": "metformin",
+        "brand_names": ["Glucophage"],
+        "tier": 1,
+        "copay": 15,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["sulfonylureas"]
+      },
+      "omeprazole": {
+        "generic_name": "omeprazole",
+        "brand_names": ["Prilosec"],
+        "tier": 1,
+        "copay": 15,
+        "prior_auth": false,
+        "quantity_limits": true,
+        "quantity_limit_details": "30 tablets per 30 days",
+        "step_therapy": false,
+        "alternatives": ["pantoprazole", "lansoprazole"]
+      },
+      "sertraline": {
+        "generic_name": "sertraline",
+        "brand_names": ["Zoloft"],
+        "tier": 1,
+        "copay": 15,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["fluoxetine", "citalopram"]
+      },
+      "amlodipine": {
+        "generic_name": "amlodipine",
+        "brand_names": ["Norvasc"],
+        "tier": 1,
+        "copay": 15,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["nifedipine", "felodipine"]
+      },
+      "synthroid": {
+        "generic_name": "levothyroxine",
+        "brand_names": ["Synthroid"],
+        "tier": 2,
+        "copay": 40,
+        "prior_auth": false,
+        "quantity_limits": false,
+        "step_therapy": false,
+        "alternatives": ["generic levothyroxine"],
+        "notes": "Brand preferred over generic for consistency"
+      },
+      "advair": {
+        "generic_name": "fluticasone/salmeterol",
+        "brand_names": ["Advair Diskus", "Advair HFA"],
+        "tier": 3,
+        "copay": 70,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must document asthma or COPD diagnosis, try generic bronchodilator",
+        "quantity_limits": true,
+        "quantity_limit_details": "1 inhaler per 30 days",
+        "step_therapy": true,
+        "step_therapy_alternatives": ["albuterol", "budesonide"],
+        "alternatives": ["symbicort", "dulera"]
+      },
+      "enbrel": {
+        "generic_name": "etanercept",
+        "brand_names": ["Enbrel"],
+        "tier": 4,
+        "copay": 150,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try conventional DMARDs first, documented inflammatory condition",
+        "quantity_limits": true,
+        "quantity_limit_details": "4 syringes per 28 days",
+        "step_therapy": true,
+        "step_therapy_alternatives": ["methotrexate", "hydroxychloroquine"],
+        "alternatives": ["humira", "remicade"],
+        "specialty_pharmacy_required": true
+      },
+      "eliquis": {
+        "generic_name": "apixaban",
+        "brand_names": ["Eliquis"],
+        "tier": 3,
+        "copay": 70,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try generic warfarin unless contraindicated",
+        "quantity_limits": false,
+        "step_therapy": true,
+        "step_therapy_alternatives": ["warfarin"],
+        "alternatives": ["xarelto", "pradaxa"]
+      },
+      "jardiance": {
+        "generic_name": "empagliflozin",
+        "brand_names": ["Jardiance"],
+        "tier": 2,
+        "copay": 40,
+        "prior_auth": true,
+        "prior_auth_criteria": "Must try metformin and sulfonylurea first",
+        "quantity_limits": false,
+        "step_therapy": true,
+        "step_therapy_alternatives": ["metformin", "glipizide"],
+        "alternatives": ["farxiga", "invokana"]
+      }
+    },
+    "coverage_policies": {
+      "prior_authorization": {
+        "description": "Prior authorization required for select medications to ensure appropriate use",
+        "typical_approval_time": "2-5 business days",
+        "appeal_process": true,
+        "expedited_review": "Available for urgent cases"
+      },
+      "step_therapy": {
+        "description": "Step therapy promotes use of cost-effective treatments first",
+        "exceptions": "Medical necessity and contraindications override step therapy"
+      },
+      "quantity_limits": {
+        "description": "Quantity limits ensure safe and appropriate use",
+        "override_process": true,
+        "clinical_override": "Available with prescriber justification"
+      },
+      "mail_order": {
+        "available": true,
+        "discount": "90-day supply for 2x copay",
+        "mandatory_for_maintenance": false
+      }
+    }
+  }
