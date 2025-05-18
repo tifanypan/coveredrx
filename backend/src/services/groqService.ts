@@ -19,7 +19,10 @@ export class GroqService {
       
       const prompt = `You are a pharmaceutical expert. The user entered: "${userInput}"
 
-Please normalize this medication and provide structured information. If you need current FDA data, search for it.
+IMPORTANT: If this is clearly not a real medication name (random letters, nonsense text, made-up words), respond with:
+{"name": "INVALID_MEDICATION", "confidence": 0.0}
+
+Otherwise, normalize this medication and provide structured information. If you need current FDA data, search for it.
 
 Return a JSON response with this exact structure:
 {
@@ -34,7 +37,8 @@ Return a JSON response with this exact structure:
 
 For example:
 - "tylenol" → {"name": "Acetaminophen", "genericName": "Acetaminophen", "brandName": "Tylenol", "strength": "500mg", "dosageForm": "tablet", "confidence": 0.9}
-- "lisinopril 10mg" → {"name": "Lisinopril", "genericName": "Lisinopril", "strength": "10mg", "dosageForm": "tablet", "confidence": 0.95}
+- "humira" → {"name": "Adalimumab", "genericName": "adalimumab", "brandName": "Humira", "strength": "40mg/0.8ml", "dosageForm": "injection", "confidence": 0.95}
+- "lisinopril" → {"name": "Lisinopril", "genericName": "lisinopril", "strength": "10mg", "dosageForm": "tablet", "confidence": 0.95}
 
 Always return valid JSON only.`;
 
@@ -42,15 +46,15 @@ Always return valid JSON only.`;
         messages: [
           {
             role: "system", 
-            content: "You are a medical AI assistant. Always return valid JSON responses. Use web search if you need current drug information."
+            content: "You are a medical AI assistant. Always return valid JSON responses. Use web search if you need current drug information. If input is clearly not a medication, return name as 'INVALID_MEDICATION'."
           },
           {
             role: "user",
             content: prompt,
           }
         ],
-        model: "compound-beta-mini", // Uses web search automatically
-        temperature: 0.1, // Low temperature for consistent results
+        model: "compound-beta-mini",
+        temperature: 0.1,
       });
 
       const responseContent = completion.choices[0]?.message?.content;
@@ -68,13 +72,27 @@ Always return valid JSON only.`;
       // Parse the JSON response
       let medicationData;
       try {
-        // Extract JSON from response if it's wrapped in text
         const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
         const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
         medicationData = JSON.parse(jsonString);
       } catch (parseError) {
         console.error('[Groq] Failed to parse JSON response:', responseContent);
         throw new Error('Invalid JSON response from Groq');
+      }
+
+      // Check if Groq identified this as invalid
+      if (medicationData.name === 'INVALID_MEDICATION' || medicationData.confidence < 0.2) {
+        console.log('[Groq] Groq identified invalid medication');
+        return {
+          medication: {
+            name: userInput,
+            genericName: userInput,
+            strength: 'Unknown',
+            dosageForm: 'unknown'
+          },
+          confidence: 0.1,
+          searchResults: 'Not recognized as a valid medication'
+        };
       }
 
       // Validate required fields
@@ -109,7 +127,7 @@ Always return valid JSON only.`;
         name: userInput,
         genericName: userInput,
         strength: 'Unknown',
-        dosageForm: 'tablet'
+        dosageForm: 'unknown'
       };
 
       return {
@@ -124,7 +142,7 @@ Always return valid JSON only.`;
     try {
       const response = await groq.chat.completions.create({
         messages: [{ role: "user", content: "Say 'healthy'" }],
-        model: "llama-3.3-70b-versatile", // Use basic model for health check
+        model: "llama-3.3-70b-versatile",
         max_tokens: 10
       });
       

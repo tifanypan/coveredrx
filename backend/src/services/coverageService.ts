@@ -21,12 +21,31 @@ export class CoverageService {
       console.log('[Coverage] Step 1: Normalizing medication with Groq...');
       const normalizedResult = await groqService.normalizeMedication(request.medicationName);
       
-      if (normalizedResult.confidence < 0.5) {
-        console.warn('[Coverage] Low confidence in medication normalization:', normalizedResult.confidence);
+      if (normalizedResult.confidence < 0.3) {
+        console.warn('[Coverage] Very low confidence in medication normalization:', normalizedResult.confidence);
+        
+        // Return "not covered" response for invalid medications
+        return {
+          medication: {
+            name: request.medicationName,
+            genericName: 'Unknown',
+            strength: 'Unknown',
+            dosageForm: 'unknown'
+          },
+          insurancePlan: request.insurancePlan,
+          isCovered: false,
+          tier: null,
+          estimatedCopay: null,
+          priorAuth: {
+            required: false
+          },
+          lastUpdated: new Date().toISOString(),
+          disclaimer: `"${request.medicationName}" is not recognized as a valid medication. Please check the spelling or consult with your healthcare provider.`
+        };
       }
 
-      // Step 2: Check coverage with Toolhouse RAG
-      console.log('[Coverage] Step 2: Checking coverage with Toolhouse RAG...');
+      // Step 2: Check coverage with real formulary service
+      console.log('[Coverage] Step 2: Checking coverage with real formulary...');
       const toolhouseRequest: ToolhouseRAGRequest = {
         medication_name: normalizedResult.medication.name,
         plan_id: request.insurancePlan.id,
