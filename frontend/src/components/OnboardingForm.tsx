@@ -1,7 +1,8 @@
 // frontend/src/components/OnboardingForm.tsx
 
 import React, { useState } from 'react';
-import { OnboardingData, InsurancePlan, ValidationError } from '../../../shared/types';
+import { OnboardingData, InsurancePlan,  ValidationError } from '../../../shared/types';
+import { Button } from './ui/button';
 
 // Mock insurance plans for now
 const MOCK_INSURANCE_PLANS: InsurancePlan[] = [
