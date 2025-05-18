@@ -4,10 +4,9 @@ import {
   CoverageRequest,
   ApiResponse,
   CoverageResponse,
-  ValidationError,
-  Medication
+  ValidationError
 } from '../../../shared/types';
-import { groqService } from '../services/groqService';
+import { coverageService } from '../services/coverageService';
 
 const router = express.Router();
 
@@ -35,11 +34,11 @@ const validateCoverageRequest = (body: CoverageRequest): ValidationError[] => {
   return errors;
 };
 
-// Handler with strong typing
+// Handler with full AI integration
 const coverageCheckHandler: RequestHandler<{}, ApiResponse<CoverageResponse | null>, CoverageRequest> =
   async (req, res) => {
     try {
-      console.log('Coverage check request:', req.body);
+      console.log('[API] Coverage check request received:', req.body.medication.name);
 
       // Validate input
       const validationErrors = validateCoverageRequest(req.body);
@@ -52,61 +51,27 @@ const coverageCheckHandler: RequestHandler<{}, ApiResponse<CoverageResponse | nu
         return res.status(400).json(errorResp);
       }
 
-      // Destructure validated body
-      const { medication, insurancePlan, patientZipCode, pharmacyZipCode, quantity, daySupply } = req.body;
-
-      // Phase 2: Use Groq to enhance medication data
-      console.log('[Coverage] Starting Groq normalization for:', medication.name);
-      let enhancedMedication: Medication;
-      let groqDisclaimer = '';
-
-      try {
-        const normalizedResult = await groqService.normalizeMedication(medication.name);
-        
-        // Merge the original medication data with Groq's enhanced data
-        enhancedMedication = {
-          id: medication.id,
-          name: normalizedResult.medication.name || medication.name,
-          genericName: normalizedResult.medication.genericName || medication.genericName,
-          brandName: normalizedResult.medication.brandName || medication.brandName,
-          strength: normalizedResult.medication.strength || medication.strength,
-          dosageForm: normalizedResult.medication.dosageForm || medication.dosageForm,
-          ndc: normalizedResult.medication.ndc || medication.ndc
-        };
-
-        groqDisclaimer = ` (Enhanced by AI with ${Math.round(normalizedResult.confidence * 100)}% confidence)`;
-        console.log('[Coverage] Groq normalization successful:', enhancedMedication.name);
-        
-      } catch (groqError) {
-        console.warn('[Coverage] Groq normalization failed, using original data:', groqError);
-        enhancedMedication = medication;
-        groqDisclaimer = ' (AI enhancement unavailable)';
-      }
-
-      // TODO: Phase 3 - Add Toolhouse integration for coverage checking
-      
-      // Mock response with enhanced medication data
-      const mockResponse: CoverageResponse = {
-        medication: enhancedMedication,
-        insurancePlan,
-        isCovered: true,
-        tier: 2,
-        estimatedCopay: { min: 25, max: 35, currency: 'USD' },
-        priorAuth: { required: false },
-        suggestedAlternative: undefined,
-        lastUpdated: new Date().toISOString(),
-        disclaimer: `Phase 2 prototype: Medication normalized by AI${groqDisclaimer}. Coverage rules are still mock data.`
-      };
+      // Use the orchestration service for full AI-powered coverage check
+      const coverageResult = await coverageService.checkCoverage({
+        medicationName: req.body.medication.name,
+        insurancePlan: req.body.insurancePlan,
+        patientZipCode: req.body.patientZipCode,
+        pharmacyZipCode: req.body.pharmacyZipCode || req.body.patientZipCode,
+        quantity: req.body.quantity,
+        daySupply: req.body.daySupply
+      });
 
       const successResp: ApiResponse<CoverageResponse> = {
         success: true,
-        data: mockResponse,
+        data: coverageResult,
         timestamp: new Date().toISOString()
       };
 
+      console.log('[API] Coverage check completed successfully');
       return res.json(successResp);
+
     } catch (err) {
-      console.error('Coverage check error:', err);
+      console.error('[API] Coverage check error:', err);
       const errorResp: ApiResponse<null> = {
         success: false,
         error: { message: 'Internal server error' },

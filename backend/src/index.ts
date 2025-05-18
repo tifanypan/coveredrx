@@ -1,5 +1,6 @@
 console.log('🔥 index.ts loaded');
 
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -7,7 +8,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import coverageRoutes from './routes/coverage';
-import { groqService } from './services/groqService';
+import { coverageService } from './services/coverageService';
 
 
 
@@ -34,10 +35,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check with Groq service test
+// Health check with all AI services
 app.get('/api/health', async (req, res) => {
-  // Test Groq service health
-  const groqHealthy = await groqService.healthCheck();
+  // Test all AI services
+  const healthStatus = await coverageService.healthCheck();
   
   res.json({
     status: 'ok',
@@ -45,9 +46,11 @@ app.get('/api/health', async (req, res) => {
     version: '1.0.0',
     services: {
       groq: process.env.GROQ_API_KEY 
-        ? (groqHealthy ? 'healthy' : 'configured but not responding') 
+        ? (healthStatus.groq ? 'healthy' : 'configured but not responding') 
         : 'missing',
-      toolhouse: 'pending'
+      toolhouse: process.env.TOOLHOUSE_API_KEY
+        ? (healthStatus.toolhouse ? 'healthy' : 'configured but not responding')
+        : 'missing'
     }
   });
 });
