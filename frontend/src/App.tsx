@@ -1,6 +1,5 @@
 // frontend/src/App.tsx
 
-
 import React, { useState } from 'react';
 import './index.css';
 import OnboardingForm from './components/OnboardingForm';
@@ -301,7 +300,7 @@ function App() {
               {/* Loading Text */}
               <div className="space-y-3">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Checking Coverage...
+                  Checking Coverage for {state.session.prescriptionData?.medicationName}...
                 </h2>
                 <p className="text-gray-600">
                   Our AI agents are analyzing your prescription
@@ -332,7 +331,10 @@ function App() {
                   <span className={`text-sm font-medium ${
                     state.loadingStep === 'identifying' ? 'text-blue-800' : 'text-green-800'
                   }`}>
-                    {state.loadingStep === 'identifying' ? 'Identifying medication...' : 'Medication identified'}
+                    {state.loadingStep === 'identifying' 
+                      ? `Identifying ${state.session.prescriptionData?.medicationName}...` 
+                      : `${state.session.prescriptionData?.medicationName} identified`
+                    }
                   </span>
                 </div>
 
@@ -367,9 +369,9 @@ function App() {
                       : 'text-gray-600'
                   }`}>
                     {state.loadingStep === 'checking-coverage' 
-                      ? 'Checking formulary coverage...'
+                      ? `Checking ${state.session.prescriptionData?.medicationName} coverage...`
                       : state.loadingStep === 'calculating' || state.loadingStep === 'complete'
-                      ? 'Formulary coverage checked'
+                      ? `${state.session.prescriptionData?.medicationName} coverage checked`
                       : 'Checking formulary coverage'
                     }
                   </span>

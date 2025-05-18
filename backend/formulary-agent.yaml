@@ -1,55 +1,55 @@
-id: formulary-coverage-agent
-title: Formulary Coverage Agent
+# id: formulary-coverage-agent
+# title: Formulary Coverage Agent
 
-prompt: |
-  You are a pharmacy benefits expert. A patient needs coverage information for:
+# prompt: |
+#   You are a pharmacy benefits expert. A patient needs coverage information for:
   
-  **Medication**: {medication_name}
-  **Insurance Plan**: {plan_id}
-  **Patient ZIP**: {patient_zip}
-  **Pharmacy ZIP**: {pharmacy_zip}
+#   **Medication**: {medication_name}
+#   **Insurance Plan**: {plan_id}
+#   **Patient ZIP**: {patient_zip}
+#   **Pharmacy ZIP**: {pharmacy_zip}
   
-  Search through ALL uploaded formulary documents to find coverage for this medication on this insurance plan.
+#   Search through ALL uploaded formulary documents to find coverage for this medication on this insurance plan.
   
-  The uploaded documents include:
-  - JSON formulary files (aetna, bcbs, unitedhealth)
-  - PDF formulary files (iu-health, cvs, medicaid)
+#   The uploaded documents include:
+#   - JSON formulary files (aetna, bcbs, unitedhealth)
+#   - PDF formulary files (iu-health, cvs, medicaid)
   
-  Find the formulary that matches the plan_id and look up the medication.
+#   Find the formulary that matches the plan_id and look up the medication.
   
-  Return coverage information in this JSON format:
-  {
-    "is_covered": true/false,
-    "tier": 1-5 or null,
-    "copay": number or null,
-    "prior_auth_required": true/false,
-    "prior_auth_details": "specific requirements or null",
-    "quantity_limits": true/false,
-    "quantity_limit_details": "details or null",
-    "step_therapy_required": true/false,
-    "step_therapy_alternatives": ["alternative1", "alternative2"] or null,
-    "suggested_alternatives": [
-      {
-        "name": "drug name",
-        "tier": 1-5,
-        "copay": number,
-        "prior_auth": false,
-        "reason": "why this is better"
-      }
-    ],
-    "explanation": "which document was used and what was found",
-    "data_source": "name of the file that provided this information"
-  }
+#   Return coverage information in this JSON format:
+#   {
+#     "is_covered": true/false,
+#     "tier": 1-5 or null,
+#     "copay": number or null,
+#     "prior_auth_required": true/false,
+#     "prior_auth_details": "specific requirements or null",
+#     "quantity_limits": true/false,
+#     "quantity_limit_details": "details or null",
+#     "step_therapy_required": true/false,
+#     "step_therapy_alternatives": ["alternative1", "alternative2"] or null,
+#     "suggested_alternatives": [
+#       {
+#         "name": "drug name",
+#         "tier": 1-5,
+#         "copay": number,
+#         "prior_auth": false,
+#         "reason": "why this is better"
+#       }
+#     ],
+#     "explanation": "which document was used and what was found",
+#     "data_source": "name of the file that provided this information"
+#   }
   
-  If you can't find the exact plan, search for similar plans or the closest match.
+#   If you can't find the exact plan, search for similar plans or the closest match.
 
-vars:
-  medication_name: "lisinopril"
-  plan_id: "aetna-choice-pos"
-  patient_zip: "94105"
-  pharmacy_zip: "94105"
+# vars:
+#   medication_name: "humira"
+#   plan_id: "aetna-choice-pos"
+#   patient_zip: "94105"
+#   pharmacy_zip: "94105"
 
-system_prompt: You are an expert in pharmacy benefits. Search through all available formulary documents to find the best match for any plan and medication combination.
+# system_prompt: You are an expert in pharmacy benefits. Search through all available formulary documents to find the best match for any plan and medication combination.
 
-public: false
-rag: formulary_database
+# public: false
+# rag: formulary_database
