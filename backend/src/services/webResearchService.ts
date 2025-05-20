@@ -48,7 +48,8 @@ export class WebResearchService {
     const startTime = Date.now();
     console.log(`[WebResearch] Starting GoodRx price search for ${drugName}`);
 
-    // Check cache first
+    // Check cache first (but clear old cache for better testing)
+    this.clearOldCache();
     const cached = this.getCachedResult(`goodrx-${drugName}`);
     if (cached) {
       console.log(`[WebResearch] Using cached result for ${drugName}`);
@@ -121,12 +122,52 @@ export class WebResearchService {
       
       // Handle various possible response formats
       if (parsedData.prices && Array.isArray(parsedData.prices)) {
-        // Format: {prices: [{price: 2.00, description: "GoodRx discount"}]}
-        priceComparisons = parsedData.prices.map(item => ({
-          pharmacy: item.description || 'Cash Price',
-          price: item.price,
-          discounts: []
-        }));
+        parsedData.prices.forEach((item: any) => {
+          // Handle nested price object: {price: {cash_price: 345, goodrx_coupon: 67}, pharmacy: "CVS"}
+          if (item.price && typeof item.price === 'object') {
+            if (item.price.cash_price) {
+              priceComparisons.push({
+                pharmacy: `${item.pharmacy} (Cash)`,
+                price: item.price.cash_price,
+                discounts: item.dosage ? [`${item.dosage}`] : []
+              });
+            }
+            if (item.price.goodrx_coupon) {
+              priceComparisons.push({
+                pharmacy: `${item.pharmacy} (GoodRx)`,
+                price: item.price.goodrx_coupon,
+                discounts: ['GoodRx coupon']
+              });
+            }
+            if (item.price.insurance_price) {
+              priceComparisons.push({
+                pharmacy: `${item.pharmacy} (Insurance)`,
+                price: item.price.insurance_price,
+                discounts: []
+              });
+            }
+          }
+          // Handle flat price with pharmacy
+          else if (item.price && item.pharmacy) {
+            const price = typeof item.price === 'string' ? 
+              parseFloat(item.price.replace(/[$,]/g, '')) : item.price;
+            priceComparisons.push({
+              pharmacy: item.pharmacy,
+              price: price,
+              discounts: item.dosage ? [`${item.dosage}`] : []
+            });
+          }
+          // Handle other formats...
+          else {
+            const price = typeof item.price === 'string' ? 
+              parseFloat(item.price.replace(/[$,]/g, '')) : item.price;
+            priceComparisons.push({
+              pharmacy: item.description || item.pharmacy || 'Cash Price',
+              price: price,
+              discounts: item.dosage ? [`${item.dosage}`] : []
+            });
+          }
+        });
       } else if (parsedData.priceComparisons && Array.isArray(parsedData.priceComparisons)) {
         // Already in our format
         priceComparisons = parsedData.priceComparisons;
@@ -137,14 +178,45 @@ export class WebResearchService {
           price: parsedData.price,
           discounts: []
         }];
-      } else if (parsedData[drugName] || parsedData[drugName.toLowerCase()]) {
+      }
+      
+      // Handle sources array: {sources: [{name: "CVS", price: 2.49}]}
+      if (parsedData.sources && Array.isArray(parsedData.sources)) {
+        parsedData.sources.forEach((source: any) => {
+          if (source.price && source.name) {
+            priceComparisons.push({
+              pharmacy: source.name,
+              price: typeof source.price === 'string' ? 
+                parseFloat(source.price.replace(/[$,]/g, '')) : source.price,
+              discounts: []
+            });
+          }
+        });
+      }
+      
+      // Handle nested drug data
+      if (parsedData[drugName] || parsedData[drugName.toLowerCase()]) {
         // Nested format: {Lisinopril: {prices: [...], pharmacies: {...}}} or {lisinopril: {...}}
         const drugData = parsedData[drugName] || parsedData[drugName.toLowerCase()];
         
+        // Handle direct array format: {lisinopril: [{dosage: "2.5mg", price: "$4.00"}]}
+        if (Array.isArray(drugData)) {
+          drugData.forEach((item: any) => {
+            if (item.price) {
+              const price = typeof item.price === 'string' ? 
+                parseFloat(item.price.replace(/[$,]/g, '')) : item.price;
+              priceComparisons.push({
+                pharmacy: `GoodRx (${item.dosage || 'Generic'})`,
+                price: price,
+                discounts: item.discount ? [`Save ${item.discount}`] : []
+              });
+            }
+          });
+        }
         // Handle prices array format: {prices: [{dosage: "2.5mg", price: 4.99, pharmacy: "CVS"}]}
-        if (drugData.prices && Array.isArray(drugData.prices)) {
+        else if (drugData.prices && Array.isArray(drugData.prices)) {
           drugData.prices.forEach((item: any) => {
-            // Handle flat price format
+            // Handle flat price format with pharmacy
             if (item.price && item.pharmacy) {
               const price = typeof item.price === 'string' ? 
                 parseFloat(item.price.replace(/[$,]/g, '')) : item.price;
@@ -178,10 +250,27 @@ export class WebResearchService {
                 discounts: []
               });
             }
+            // Handle goodrx_price format: {retail_price: 4.99, goodrx_price: 2.49}
+            else if (item.goodrx_price || item.retail_price) {
+              if (item.goodrx_price) {
+                priceComparisons.push({
+                  pharmacy: 'GoodRx',
+                  price: item.goodrx_price,
+                  discounts: item.discount ? [`${item.discount}% off`] : []
+                });
+              }
+              if (item.retail_price) {
+                priceComparisons.push({
+                  pharmacy: 'Retail Price',
+                  price: item.retail_price,
+                  discounts: []
+                });
+              }
+            }
           });
         }
         
-        // Extract from pharmacies object (previous format)
+        // Extract from pharmacies object (alternative format)
         if (drugData.pharmacies) {
           Object.entries(drugData.pharmacies).forEach(([pharmacy, data]: [string, any]) => {
             // Add original price
@@ -208,7 +297,7 @@ export class WebResearchService {
           });
         }
         
-        // Extract from prices object (alternative nested format)
+        // Extract from prices object (object format)
         if (drugData.prices && !Array.isArray(drugData.prices)) {
           Object.entries(drugData.prices).forEach(([dosage, data]: [string, any]) => {
             if (data.average_retail_price) {
@@ -233,6 +322,26 @@ export class WebResearchService {
           });
         }
       }
+      
+      // Handle direct drug_name format: {drug_name: "Lisinopril", prices: [{dosage, price, pharmacy}]}
+      if (parsedData.drug_name && parsedData.prices && Array.isArray(parsedData.prices)) {
+        parsedData.prices.forEach((item: any) => {
+          if (item.price && item.pharmacy) {
+            const price = typeof item.price === 'string' ? 
+              parseFloat(item.price.replace(/[$,]/g, '')) : item.price;
+            priceComparisons.push({
+              pharmacy: item.pharmacy,
+              price: price,
+              discounts: item.dosage ? [`${item.dosage}`] : []
+            });
+          }
+        });
+      }
+      
+      // Filter out any entries with NaN prices
+      priceComparisons = priceComparisons.filter(comparison => 
+        !isNaN(comparison.price) && comparison.price > 0
+      );
       
       const result: WebResearchResult = {
         query: `GoodRx pricing for ${drugName}`,
@@ -545,6 +654,16 @@ Return as JSON:
   clearCache(): void {
     this.cache.clear();
     console.log('[WebResearch] Cache cleared');
+  }
+
+  // Clear old cache entries (older than 10 minutes for testing)
+  clearOldCache(): void {
+    const now = Date.now();
+    for (const [key, cached] of this.cache.entries()) {
+      if (now - cached.timestamp > 600000) { // 10 minutes
+        this.cache.delete(key);
+      }
+    }
   }
 }
 

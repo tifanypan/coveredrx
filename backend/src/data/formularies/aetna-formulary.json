@@ -147,7 +147,7 @@
       },
       "xarelto": {
         "generic_name": "rivaroxaban",
-        "brand_names": ["Xarelto"],
+        "brand_names": [""],
         "tier": 3,
         "copay": 60,
         "prior_auth": true,

@@ -1,6 +1,6 @@
 // backend/src/services/groqService.ts
 import Groq from 'groq-sdk';
-import { Medication } from '../types';
+import { Medication } from '../../../shared/types';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,

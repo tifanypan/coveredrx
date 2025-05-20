@@ -1,5 +1,5 @@
 // backend/src/services/coverageService.ts
-import { Medication, InsurancePlan, CoverageResponse, PriorAuthRequirement } from '../types';
+import { Medication, InsurancePlan, CoverageResponse, PriorAuthRequirement } from '../../../shared/types';
 import { groqService } from './groqService';
 import { toolhouseService, ToolhouseRAGRequest } from './toolhouseService';
 import { formularyService } from './formularyService';
@@ -55,7 +55,7 @@ export class CoverageService {
       const localPromise = this.checkLocalFormulary(request.insurancePlan.id, normalizedResult.medication.name);
       
       // For demo purposes with RAG issues, prioritize local for common drugs
-      const commonDrugs = ['lisinopril', 'metformin', 'atorvastatin', 'omeprazole', 'sertraline', 'amlodipine', 'humira', 'adalimumab', 'symbicort', 'budesonide'];
+      const commonDrugs = ['lisinopril', 'metformin', 'atorvastatin', 'omeprazole', 'sertraline', 'amlodipine', 'humira', 'adalimumab'];
       const isCommonDrug = commonDrugs.some(drug => 
         normalizedResult.medication.name.toLowerCase().includes(drug.toLowerCase()) ||
         normalizedResult.medication.genericName?.toLowerCase().includes(drug.toLowerCase()) ||

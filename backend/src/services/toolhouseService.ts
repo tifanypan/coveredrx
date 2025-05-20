@@ -120,7 +120,7 @@ export class ToolhouseService {
     } catch (error) {
       const elapsed = Date.now() - startTime;
       
-      if (error.name === 'AbortError') {
+      if ((error as any).name === 'AbortError') {
         console.log(`[Toolhouse] Request aborted after ${elapsed}ms timeout - falling back to local`);
       } else {
         console.error(`[Toolhouse] Error after ${elapsed}ms:`, error);
